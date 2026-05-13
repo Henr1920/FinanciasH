@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Crypto News Feed</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #080b10;
+      --bg2: #0a0e14;
+      --bg3: #0d1117;
+      --border: #1a2535;
+      --border2: #1e2a3a;
+      --text: #c8d0e0;
+      --text-dim: #7a8899;
+      --text-dimmer: #4a5a6a;
+      --text-dimmest: #3a4a5a;
+      --gold: #f59e0b;
+      --gold-dark: #1a1200;
+      --green: #00ff88;
+      --green-bg: #0d2b1a;
+      --red: #ff4444;
+      --red-bg: #2b0d0d;
+      --blue: #8888ff;
+      --blue-bg: #1a1a2b;
+    }
+
+    body {
+      min-height: 100vh;
+      background: var(--bg);
+      font-family: 'IBM Plex Mono', 'Courier New', monospace;
+      color: var(--text);
+    }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #0d1117; }
+    ::-webkit-scrollbar-thumb { background: #2a3040; border-radius: 3px; }
+
+    /* HEADER */
+    .header {
+      background: linear-gradient(180deg, #0d1520 0%, #080b10 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 28px 24px 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::before {
+      content: '';
+      position: absolute;
+      top: -60px; left: 50%; transform: translateX(-50%);
+      width: 600px; height: 120px;
+      background: radial-gradient(ellipse, rgba(245,158,11,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .header-inner { max-width: 1200px; margin: 0 auto; }
+    .header-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .btc-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(135deg, #1a1200, #2a1e00);
+      border: 1px solid rgba(245,158,11,0.27);
+      color: var(--gold);
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 2px;
+    }
+    .live-dot {
+      width: 6px; height: 6px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    .live-label { font-size: 10px; color: var(--text-dimmest); letter-spacing: 1px; }
+    .badge-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(22px, 4vw, 32px);
+      font-weight: 700;
+      color: #e8edf5;
+      letter-spacing: -0.5px;
+      line-height: 1.2;
+    }
+    .subtitle { font-size: 12px; color: var(--text-dimmer); margin-top: 6px; letter-spacing: 0.5px; }
+
+    /* SOURCES */
+    .sources-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .sources-label { font-size: 10px; color: var(--text-dimmest); letter-spacing: 1px; }
+    .source-chip {
+      font-size: 10px;
+      color: var(--text-dimmer);
+      background: #0d1117;
+      border: 1px solid var(--border2);
+      padding: 3px 10px;
+      border-radius: 3px;
+      letter-spacing: 0.5px;
+    }
+
+    /* STATS */
+    .stats-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 18px;
+      flex-wrap: wrap;
+    }
+    .stat-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 1px;
+    }
+    .stat-neu { background: var(--blue-bg); border: 1px solid rgba(136,136,255,0.27); color: var(--blue); }
+
+    /* RELOAD BTN */
+    .reload-btn {
+      background: linear-gradient(135deg, #1a1200, #2a1e00);
+      border: 1px solid rgba(245,158,11,0.4);
+      color: var(--gold);
+      padding: 10px 24px;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .reload-btn:hover {
+      border-color: var(--gold);
+      background: #2a1e00;
+      box-shadow: 0 0 16px rgba(245,158,11,0.2);
+    }
+    .reload-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* FILTERS */
+    .filters-bar {
+      border-bottom: 1px solid #111820;
+      padding: 12px 24px;
+      background: var(--bg2);
+    }
+    .filters-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .filter-group { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .filter-label { font-size: 10px; color: var(--text-dimmest); letter-spacing: 1px; margin-right: 4px; }
+    .filter-btn {
+      background: transparent;
+      border: 1px solid var(--border2);
+      color: var(--text-dim);
+      padding: 6px 14px;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 12px;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .filter-btn:hover { border-color: rgba(245,158,11,0.33); color: #c8a840; }
+    .filter-btn.active { border-color: var(--gold); color: var(--gold); background: #1a1200; }
+
+    /* CONTENT */
+    .content { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+    /* ERROR */
+    .error-box {
+      background: var(--red-bg);
+      border: 1px solid rgba(255,68,68,0.4);
+      border-radius: 8px;
+      padding: 16px 20px;
+      color: #ff6666;
+      font-size: 13px;
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+
+    /* GRID */
+    .news-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px;
+    }
+
+    /* CARD */
+    .news-card {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-left: 2px solid var(--gold);
+      border-radius: 8px;
+      overflow: hidden;
+      transition: all 0.25s ease;
+      display: flex;
+      flex-direction: column;
+      text-decoration: none;
+      color: inherit;
+    }
+    .news-card:hover {
+      border-color: #2a3a50;
+      border-left-color: var(--gold);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    .card-img-wrap { position: relative; overflow: hidden; }
+    .card-img {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+      opacity: 0.75;
+      transition: opacity 0.3s;
+      display: block;
+      background: #0d1520;
+    }
+    .card-img-placeholder {
+      width: 100%;
+      height: 160px;
+      background: linear-gradient(135deg, #0d1520 0%, #1a2535 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      color: #2a3a50;
+    }
+    .news-card:hover .card-img { opacity: 0.9; }
+
+    .img-overlay-top {
+      position: absolute;
+      top: 10px; left: 10px;
+      display: flex;
+      gap: 6px;
+    }
+    .img-overlay-bot { position: absolute; bottom: 10px; right: 10px; }
+
+    .source-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      background: rgba(8,11,16,0.85);
+      border: 1px solid rgba(245,158,11,0.3);
+      color: var(--gold);
+    }
+    .category-tag {
+      display: inline-block;
+      background: rgba(8,11,16,0.8);
+      border: 1px solid var(--border2);
+      color: var(--text-dim);
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-size: 10px;
+      letter-spacing: 1px;
+    }
+
+    .card-body {
+      padding: 14px 16px 16px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .card-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .cripto-tag { color: var(--gold); font-size: 10px; font-weight: 700; letter-spacing: 1px; }
+    .card-date { font-size: 9px; color: #2a3a4a; letter-spacing: 1px; }
+    .card-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.4;
+      color: #d8e0ee;
+      letter-spacing: -0.2px;
+    }
+    .card-summary {
+      font-size: 12px;
+      line-height: 1.7;
+      color: var(--text-dim);
+      flex: 1;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+    }
+    .read-more {
+      font-size: 10px;
+      color: var(--gold);
+      letter-spacing: 1px;
+      text-decoration: none;
+    }
+    .read-more:hover { text-decoration: underline; }
+    .card-source-name { font-size: 10px; color: var(--text-dimmest); letter-spacing: 0.5px; }
+
+    /* KEYWORD TAGS */
+    .keyword-tags { display: flex; gap: 4px; flex-wrap: wrap; }
+    .keyword-tag {
+      font-size: 9px;
+      padding: 2px 6px;
+      border-radius: 2px;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+    .tag-btc { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); color: #f59e0b; }
+    .tag-eth { background: rgba(98,126,234,0.1); border: 1px solid rgba(98,126,234,0.3); color: #627eea; }
+    .tag-sol { background: rgba(20,241,149,0.1); border: 1px solid rgba(20,241,149,0.3); color: #14f195; }
+    .tag-bnb { background: rgba(240,185,11,0.1); border: 1px solid rgba(240,185,11,0.3); color: #f0b90b; }
+    .tag-xrp { background: rgba(0,90,212,0.1); border: 1px solid rgba(0,90,212,0.3); color: #346aa9; }
+    .tag-defi { background: rgba(136,136,255,0.1); border: 1px solid rgba(136,136,255,0.3); color: #8888ff; }
+    .tag-nft { background: rgba(255,100,200,0.1); border: 1px solid rgba(255,100,200,0.3); color: #ff64c8; }
+    .tag-reg { background: rgba(255,150,50,0.1); border: 1px solid rgba(255,150,50,0.3); color: #ff9632; }
+
+    /* SKELETON */
+    .skeleton { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+    .skel-img { width: 100%; height: 160px; background: linear-gradient(90deg, #111820 25%, #1a2535 50%, #111820 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+    .skel-body { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+    .skel-line { height: 12px; border-radius: 4px; background: linear-gradient(90deg, #111820 25%, #1a2535 50%, #111820 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    /* EMPTY */
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--text-dimmest); }
+    .empty-icon { font-size: 32px; margin-bottom: 12px; }
+    .empty-text { font-size: 14px; letter-spacing: 1px; }
+
+    /* FOOTER */
+    .ticker-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      font-size: 10px;
+      letter-spacing: 1px;
+      color: #3a4a5a;
+      padding: 8px 24px;
+      border-top: 1px solid #0f1720;
+    }
+    .divider-dot { color: #2a3540; }
+
+    @media (max-width: 640px) {
+      .filters-inner { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-inner">
+    <div class="header-top">
+      <div>
+        <div class="badge-row">
+          <span class="btc-badge">₿ CRYPTO NEWS</span>
+          <span class="live-dot"></span>
+          <span class="live-label">LIVE FEED</span>
+        </div>
+        <h1>Notícias do Mercado Cripto</h1>
+        <p class="subtitle" id="subtitle-date"></p>
+      </div>
+      <button class="reload-btn" id="reload-btn" onclick="fetchNews()">⟳ Atualizar</button>
+    </div>
+    <div class="sources-row">
+      <span class="sources-label">FONTES:</span>
+      <span class="source-chip">CoinTelegraph</span>
+      <span class="source-chip">CryptoPanic</span>
+      <span class="source-chip">Decrypt</span>
+      <span class="source-chip">CoinDesk</span>
+      <span class="source-chip">Bitcoin.com</span>
+    </div>
+    <div class="stats-row" id="stats-row" style="display:none">
+      <div class="stat-pill stat-neu">◈ <span id="count-total">0</span> Notícias Carregadas</div>
+    </div>
+  </div>
+</div>
+
+<!-- FILTERS -->
+<div class="filters-bar" id="filters-bar" style="display:none">
+  <div class="filters-inner">
+    <div class="filter-group">
+      <span class="filter-label">FONTE</span>
+      <button class="filter-btn active" data-source="all" onclick="setSourceFilter(this)">TODAS</button>
+      <button class="filter-btn" data-source="cointelegraph" onclick="setSourceFilter(this)">CoinTelegraph</button>
+      <button class="filter-btn" data-source="cryptopanic" onclick="setSourceFilter(this)">CryptoPanic</button>
+      <button class="filter-btn" data-source="decrypt" onclick="setSourceFilter(this)">Decrypt</button>
+      <button class="filter-btn" data-source="coindesk" onclick="setSourceFilter(this)">CoinDesk</button>
+      <button class="filter-btn" data-source="bitcoin" onclick="setSourceFilter(this)">Bitcoin.com</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+  <div id="error-box" class="error-box" style="display:none"></div>
+  <div id="news-grid" class="news-grid"></div>
+</div>
+
+<!-- FOOTER -->
+<div class="ticker-line">
+  <span>₿</span><span class="divider-dot">·</span>
+  <span>NOTÍCIAS REAIS AGREGADAS DE FONTES CONFIÁVEIS DO MERCADO CRIPTO</span>
+  <span class="divider-dot">·</span>
+  <span>NÃO CONSTITUI CONSELHO FINANCEIRO</span>
+  <span class="divider-dot">·</span>
+  <span>SEMPRE PESQUISE ANTES DE INVESTIR</span>
+</div>
+
+<script>
+  // ─── CONFIG ────────────────────────────────────────────────────────────────
+  // rss2json.com converte RSS para JSON com CORS liberado, gratuito, sem chave
+  const RSS2JSON = "https://api.rss2json.com/v1/api.json?rss_url=";
+
+  const FEEDS = [
+    {
+      key: "cointelegraph",
+      name: "CoinTelegraph",
+      url: "https://cointelegraph.com/rss",
+      icon: "◈",
+    },
+    {
+      key: "cryptopanic",
+      name: "CryptoPanic",
+      url: "https://cryptopanic.com/news/rss",
+      icon: "⬡",
+    },
+    {
+      key: "decrypt",
+      name: "Decrypt",
+      url: "https://decrypt.co/feed",
+      icon: "◎",
+    },
+    {
+      key: "coindesk",
+      name: "CoinDesk",
+      url: "https://www.coindesk.com/arc/outboundfeeds/rss/",
+      icon: "₿",
+    },
+    {
+      key: "bitcoin",
+      name: "Bitcoin.com",
+      url: "https://news.bitcoin.com/feed/",
+      icon: "✕",
+    },
+  ];
+
+  // Keywords para detectar criptomoeda e categoria
+  const KEYWORD_MAP = {
+    btc: ["bitcoin", "btc", "satoshi", "halving", "miner", "mining"],
+    eth: ["ethereum", "eth", "vitalik", "evm", "layer 2", "l2"],
+    sol: ["solana", "sol"],
+    bnb: ["bnb", "binance", "bsc"],
+    xrp: ["xrp", "ripple"],
+    defi: ["defi", "yield", "liquidity", "dex", "uniswap", "aave", "compound", "swap"],
+    nft: ["nft", "opensea", "token", "metaverse"],
+    reg: ["regulation", "sec", "cftc", "congress", "ban", "law", "regulat", "etf"],
+  };
+
+  const FALLBACK_IMAGES = [
+    "https://images.unsplash.com/photo-1518546305927-5a555bb7020d?w=400&q=80",
+    "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=400&q=80",
+    "https://images.unsplash.com/photo-1622630998477-20aa696ecb05?w=400&q=80",
+    "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400&q=80",
+    "https://images.unsplash.com/photo-1605792657660-596af9009e82?w=400&q=80",
+    "https://images.unsplash.com/photo-1631897642056-97a7abebacf0?w=400&q=80",
+    "https://images.unsplash.com/photo-1621761191319-c6fb62004040?w=400&q=80",
+    "https://images.unsplash.com/photo-1620321023374-d1a68fbc720d?w=400&q=80",
+  ];
+
+  let allNews = [];
+  let sourceFilter = "all";
+
+  // ─── UTILS ─────────────────────────────────────────────────────────────────
+  function detectTags(text) {
+    const lower = text.toLowerCase();
+    const tags = [];
+    for (const [tag, keywords] of Object.entries(KEYWORD_MAP)) {
+      if (keywords.some(k => lower.includes(k))) tags.push(tag);
+    }
+    return [...new Set(tags)].slice(0, 3);
+  }
+
+  function tagHTML(tag) {
+    const labels = {
+      btc: ["tag-btc", "₿ BTC"],
+      eth: ["tag-eth", "Ξ ETH"],
+      sol: ["tag-sol", "◎ SOL"],
+      bnb: ["tag-bnb", "⬡ BNB"],
+      xrp: ["tag-xrp", "✕ XRP"],
+      defi: ["tag-defi", "⚡ DeFi"],
+      nft: ["tag-nft", "◆ NFT"],
+      reg: ["tag-reg", "⚖ REG"],
+    };
+    const [cls, label] = labels[tag] || ["tag-btc", tag.toUpperCase()];
+    return `<span class="keyword-tag ${cls}">${label}</span>`;
+  }
+
+  function formatDate(dateStr) {
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })
+        + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    } catch {
+      return "";
+    }
+  }
+
+  function stripHTML(html) {
+    const tmp = document.createElement("div");
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || "";
+  }
+
+  function extractImage(item) {
+    // Try thumbnail field first
+    if (item.thumbnail && item.thumbnail.startsWith("http")) return item.thumbnail;
+    // Try enclosure
+    if (item.enclosure?.link?.startsWith("http")) return item.enclosure.link;
+    // Try parsing image from content
+    if (item.content) {
+      const m = item.content.match(/<img[^>]+src=["']([^"']+)["']/i);
+      if (m) return m[1];
+    }
+    return null;
+  }
+
+  // ─── FETCH ─────────────────────────────────────────────────────────────────
+  async function fetchFeed(feed) {
+    const url = RSS2JSON + encodeURIComponent(feed.url) + "&count=5";
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+      if (!res.ok) return [];
+      const data = await res.json();
+      if (data.status !== "ok" || !Array.isArray(data.items)) return [];
+      return data.items.map((item, i) => ({
+        title: stripHTML(item.title || "Sem título"),
+        summary: stripHTML(item.description || item.content || "").slice(0, 200).trim(),
+        link: item.link || "#",
+        date: item.pubDate || "",
+        image: extractImage(item) || FALLBACK_IMAGES[i % FALLBACK_IMAGES.length],
+        sourceName: feed.name,
+        sourceKey: feed.key,
+        sourceIcon: feed.icon,
+        tags: detectTags((item.title || "") + " " + (item.description || "")),
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  // ─── SKELETONS ─────────────────────────────────────────────────────────────
+  function showSkeletons() {
+    document.getElementById("news-grid").innerHTML = Array.from({ length: 12 }).map(() => `
+      <div class="skeleton">
+        <div class="skel-img"></div>
+        <div class="skel-body">
+          <div class="skel-line" style="width:40%"></div>
+          <div class="skel-line" style="width:90%"></div>
+          <div class="skel-line" style="width:75%"></div>
+          <div class="skel-line" style="width:85%"></div>
+          <div class="skel-line" style="width:50%;margin-top:4px"></div>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  // ─── RENDER ────────────────────────────────────────────────────────────────
+  function renderNews() {
+    const filtered = sourceFilter === "all"
+      ? allNews
+      : allNews.filter(n => n.sourceKey === sourceFilter);
+
+    const grid = document.getElementById("news-grid");
+
+    if (filtered.length === 0 && allNews.length > 0) {
+      grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+        <div class="empty-icon">◈</div>
+        <p class="empty-text">Nenhuma notícia desta fonte no momento.</p>
+      </div>`;
+      return;
+    }
+
+    grid.innerHTML = filtered.map(item => {
+      const tagsHTML = item.tags.map(tagHTML).join("");
+      const imgHTML = item.image
+        ? `<img class="card-img" src="${item.image}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" /><div class="card-img-placeholder" style="display:none">₿</div>`
+        : `<div class="card-img-placeholder">₿</div>`;
+
+      return `
+        <div class="news-card" style="border-left-color: var(--gold)">
+          <div class="card-img-wrap">
+            ${imgHTML}
+            <div class="img-overlay-top">
+              <span class="source-badge">${item.sourceIcon} ${item.sourceName.toUpperCase()}</span>
+            </div>
+            ${tagsHTML ? `<div class="img-overlay-bot"><div class="keyword-tags">${tagsHTML}</div></div>` : ""}
+          </div>
+          <div class="card-body">
+            <div class="card-meta">
+              <span class="cripto-tag">${item.tags.length > 0 ? tagHTML(item.tags[0]).replace('class="keyword-tag', 'class="cripto-tag keyword-tag').replace('<span ', '<span ') : '⊞ MERCADO'}</span>
+              <span class="card-date">${formatDate(item.date)}</span>
+            </div>
+            <h3 class="card-title">${item.title}</h3>
+            ${item.summary ? `<p class="card-summary">${item.summary}...</p>` : ""}
+            <div class="card-footer">
+              <span class="card-source-name">${item.sourceName}</span>
+              <a class="read-more" href="${item.link}" target="_blank" rel="noopener">LER MAIS →</a>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  // ─── MAIN FETCH ────────────────────────────────────────────────────────────
+  async function fetchNews() {
+    const btn = document.getElementById("reload-btn");
+    btn.disabled = true;
+    btn.textContent = "⟳ Buscando...";
+    document.getElementById("error-box").style.display = "none";
+    document.getElementById("stats-row").style.display = "none";
+    document.getElementById("filters-bar").style.display = "none";
+    showSkeletons();
+
+    try {
+      // Busca todos os feeds em paralelo
+      const results = await Promise.all(FEEDS.map(fetchFeed));
+      const merged = results.flat();
+
+      if (merged.length === 0) {
+        showError(
+          "Não foi possível carregar as notícias. Isso pode ocorrer se o seu site estiver sendo acessado diretamente como arquivo local (file://).\n\n" +
+          "Solução: hospede o arquivo em um servidor (ex: GitHub Pages, Netlify, Vercel) ou use uma extensão de servidor local.\n\n" +
+          "O feed funciona normalmente quando hospedado online."
+        );
+        return;
+      }
+
+      // Ordena por data mais recente
+      allNews = merged.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      const now = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+      const today = new Date().toLocaleDateString("pt-BR", {
+        weekday: "long", day: "2-digit", month: "long", year: "numeric"
+      });
+      document.getElementById("subtitle-date").textContent = `${today} · Atualizado às ${now}`;
+      document.getElementById("count-total").textContent = allNews.length;
+      document.getElementById("stats-row").style.display = "flex";
+      document.getElementById("filters-bar").style.display = "block";
+      renderNews();
+    } catch (e) {
+      showError("Erro inesperado: " + (e.message || "falha ao buscar feeds."));
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "⟳ Atualizar";
+    }
+  }
+
+  function showError(msg) {
+    const box = document.getElementById("error-box");
+    box.style.whiteSpace = "pre-line";
+    box.textContent = "⚠ " + msg;
+    box.style.display = "block";
+    document.getElementById("news-grid").innerHTML = "";
+  }
+
+  function setSourceFilter(el) {
+    document.querySelectorAll("[data-source]").forEach(b => b.classList.remove("active"));
+    el.classList.add("active");
+    sourceFilter = el.dataset.source;
+    renderNews();
+  }
+
+  // Set date immediately
+  document.getElementById("subtitle-date").textContent = new Date().toLocaleDateString("pt-BR", {
+    weekday: "long", day: "2-digit", month: "long", year: "numeric"
+  });
+
+  fetchNews();
+</script>
+</body>
+</html>
